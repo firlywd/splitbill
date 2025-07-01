@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitt Bill Aja</title>
+    <meta name="description" content="Aplikasi split bill otomatis untuk menghitung tagihan bersama dengan fitur barang patungan. Kunjungi s.id/splitbilll (L nya 3).">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E💸%3C/text%3E%3C/svg%3E">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f7fa;
+            --text-color: #333;
+            --border-color: #dce1e6;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 12px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        h1, h2, h3 { color: var(--primary-color); text-align: center; }
+        .input-group, .person-card, .summary-card, .shared-items-card {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .shared-items-card { background-color: #e8f4fd; }
+        .input-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .input-row > * { flex: 1 1 auto; }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #357abd; }
+        #add-person-btn { width: auto; flex-grow: 0; }
+        .btn-small { padding: 4px 8px; font-size: 12px; margin-left: 10px; }
+        .delete-person-btn { cursor: pointer; font-size: 1.1rem; margin-left: 12px; opacity: 0.5; transition: opacity 0.2s; }
+        .delete-person-btn:hover { opacity: 1; }
+        .item-list { list-style: none; padding: 0; margin: 0; }
+        .item-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); word-break: break-word; }
+        .item-list li:last-child { border-bottom: none; }
+        .summary-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 1.1em; }
+        .summary-row.total { font-weight: 700; color: var(--primary-color); font-size: 1.3em; border-top: 2px solid var(--primary-color); margin-top: 10px; padding-top: 10px; }
+        .summary-row-sub { font-size: 0.9em; color: #777; text-align: right; margin-top: -5px; padding-bottom: 5px; }
+        .participant-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .participant-list label { display: flex; align-items: center; gap: 5px; font-size: 0.9em; padding: 5px 10px; background: #fff; border: 1px solid var(--border-color); border-radius: 20px; cursor: pointer; }
+        hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
+        
+        /* PERUBAHAN 3: Style untuk Tombol Reset Bill Baru */
+        #reset-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 0.9rem; /* Ukuran font disesuaikan */
+            font-weight: 600;
+            background-color: var(--danger-color);
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 8px 12px; /* Padding disesuaikan */
+            border-radius: 8px;
+            opacity: 0.9;
+        }
+        #reset-btn:hover { opacity: 1; background-color: #c0392b; }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9em;
+            color: #888;
+        }
+        footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button id="reset-btn" onclick="clearData()" title="Hapus semua data dan mulai dari awal">Mulai Bill Baru</button>
+        <h1>Splitt Bill Aja 🤝</h1>
+        
+        <div class="input-group">
+            <div class="input-row">
+                <div><label for="tax">Pajak (%)</label><input type="number" id="tax" oninput="render()"></div>
+                <div><label for="service">Servis (%)</label><input type="number" id="service" oninput="render()"></div>
+            </div>
+        </div>
+        <div class="input-group">
+            <p style="text-align:center; margin-top:-5px; font-size:0.9em; color:#555;"><b>Langkah 1:</b> Masukkan nama semua orang di sini.</p>
+            <div class="input-row">
+                <input type="text" id="person-name" placeholder="Contoh: Budi">
+                <button onclick="addPerson()" id="add-person-btn">Tambah</button>
+            </div>
+        </div>
+
+        <div id="shared-items-section" class="shared-items-card" style="display: none;">
+            <h2>Barang Patungan</h2>
+            <p style="text-align:center; margin-top:-15px; font-size:0.9em; color:#555;"><b>Langkah 2:</b> Masukkan item yang dibayar bersama.</p>
+            <div id="shared-item-list"></div><hr>
+            <div class="input-row">
+                <input type="text" id="shared-item-name" placeholder="Nama Item Patungan">
+                <input type="text" inputmode="numeric" id="shared-item-price" placeholder="Total Harga" oninput="formatInput(event)">
+            </div>
+            <div id="shared-item-participants" class="participant-list"></div>
+            <button style="margin-top: 15px; background-color: var(--success-color);" onclick="addSharedItem()">Tambah Item Patungan</button>
+        </div>
+
+        <div id="people-container"></div>
+
+        <div id="summary-section" style="display: none;">
+            <hr>
+            <div id="capture-area">
+                <h2 style="margin-top:0;">Ringkasan Total</h2>
+                <div class="summary-card" id="summary"></div>
+                <h2>Rincian per Orang</h2>
+                <div class="summary-card" id="person-summary"></div>
+            </div>
+            <hr>
+            <button class="btn-success" onclick="exportToPNG()">Simpan Gambar (PNG)</button>
+        </div>
+
+        <footer>
+            <p>
+                Dibuat dengan ❤️ oleh <a href="https://s.id/firly" target="_blank" rel="noopener noreferrer">Firly</a>
+            </p>
+        </footer>
+    </div>
+
+<script>
+    // --- SEMUA KODE JAVASCRIPT TETAP SAMA ---
+    let people = [];
+    let sharedItems = [];
+    let nextPersonId = 0;
+    let nextSharedItemId = 0;
+
+    const saveData = () => {
+        const data = {
+            people,
+            sharedItems,
+            tax: document.getElementById('tax').value,
+            service: document.getElementById('service').value,
+            nextPersonId,
+            nextSharedItemId
+        };
+        localStorage.setItem('splitBillData', JSON.stringify(data));
+    };
+
+    const loadData = () => {
+        const savedData = localStorage.getItem('splitBillData');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            people = data.people || [];
+            sharedItems = data.sharedItems || [];
+            document.getElementById('tax').value = data.tax || '11';
+            document.getElementById('service').value = data.service || '5';
+            nextPersonId = data.nextPersonId || 0;
+            nextSharedItemId = data.nextSharedItemId || 0;
+        } else {
+            document.getElementById('tax').value = '11';
+            document.getElementById('service').value = '5';
+        }
+    };
+    
+    const clearData = () => {
+        if (confirm('Anda yakin ingin menghapus semua data dan memulai bill baru?')) {
+            localStorage.removeItem('splitBillData');
+            location.reload();
+        }
+    };
+
+    const getCalculationResults = () => {
+        const taxPercent = parseFloat(document.getElementById('tax').value) || 0;
+        const servicePercent = parseFloat(document.getElementById('service').value) || 0;
+        
+        const personalItemsSubtotal = people.reduce((sum, p) => sum + p.items.reduce((itemSum, item) => itemSum + item.price, 0), 0);
+        const sharedItemsSubtotal = sharedItems.reduce((sum, item) => sum + item.price, 0);
+        
+        const subtotal = personalItemsSubtotal + sharedItemsSubtotal;
+        const taxAmount = subtotal * (taxPercent / 100);
+        const serviceAmount = subtotal * (servicePercent / 100);
+        const grandTotal = subtotal + taxAmount + serviceAmount;
+
+        const personDetails = people.map(person => {
+            const personPersonalSubtotal = person.items.reduce((sum, item) => sum + item.price, 0);
+            let personSharedSubtotal = 0;
+            sharedItems.forEach(item => {
+                if (item.participants.includes(person.id)) {
+                    personSharedSubtotal += item.price / item.participants.length;
+                }
+            });
+            const personSubtotal = personPersonalSubtotal + personSharedSubtotal;
+            const personTax = subtotal > 0 ? (personSubtotal / subtotal) * taxAmount : 0;
+            const personService = subtotal > 0 ? (personSubtotal / subtotal) * serviceAmount : 0;
+            const personTotal = personSubtotal + personTax + personService;
+            return { name: person.name, subtotal: personSubtotal, total: personTotal };
+        });
+
+        return { subtotal, taxAmount, serviceAmount, grandTotal, taxPercent, servicePercent, personDetails };
+    };
+
+    const render = () => {
+        const hasData = people.length > 0 || sharedItems.length > 0;
+        document.getElementById('shared-items-section').style.display = people.length > 0 ? 'block' : 'none';
+        document.getElementById('summary-section').style.display = hasData ? 'block' : 'none';
+
+        renderPeopleCards();
+        renderSharedItems();
+        renderSummary();
+        saveData(); 
+    };
+    
+    const renderPeopleCards = () => {
+        const peopleContainer = document.getElementById('people-container');
+        peopleContainer.innerHTML = '';
+        people.forEach(person => {
+            let itemsHTML = person.items.map((item, index) => `
+                <li>
+                    <span>${item.name} (${formatCurrency(item.price)})</span>
+                    <button style="background-color: ${'var(--danger-color)'};" class="btn-small" onclick="removeItem(${person.id}, ${index})">X</button>
+                </li>`).join('');
+            const personCard = document.createElement('div');
+            personCard.className = 'person-card';
+            personCard.innerHTML = `
+                <div class="person-header">
+                    <h3>${person.name} <span class="delete-person-btn" onclick="removePerson(${person.id})" title="Hapus ${person.name}">🗑️</span></h3>
+                </div>
+                <p style="text-align:center; margin-top:-15px; font-size:0.9em; color:#555;"><b>Langkah 3:</b> Masukkan item pribadi orang ini.</p>
+                <ul class="item-list">${itemsHTML}</ul><hr>
+                <div class="input-row">
+                    <input type="text" id="item-name-${person.id}" placeholder="Item pribadi">
+                    <input type="text" inputmode="numeric" id="item-price-${person.id}" placeholder="Harga" oninput="formatInput(event)">
+                </div>
+                <button style="margin-top: 10px;" onclick="addItem(${person.id})">Tambah Item Pribadi</button>`;
+            peopleContainer.appendChild(personCard);
+        });
+    };
+
+    const renderSharedItems = () => {
+        const sharedItemListDiv = document.getElementById('shared-item-list');
+        sharedItemListDiv.innerHTML = '';
+        sharedItems.forEach(item => {
+            const participantsNames = item.participants.map(pId => people.find(p => p.id === pId)?.name || 'N/A').join(', ');
+            sharedItemListDiv.innerHTML += `
+                <div class="item-list"><li>
+                    <span>${item.name} (${formatCurrency(item.price)}) <br><small style="color:#555">Patungan: ${participantsNames}</small></span>
+                    <button style="background-color: ${'var(--danger-color)'};" class="btn-small" onclick="removeSharedItem(${item.id})">X</button>
+                </li></div>`;
+        });
+        const participantsDiv = document.getElementById('shared-item-participants');
+        participantsDiv.innerHTML = '<h4>Pilih yang ikut patungan:</h4>' + people.map(p => `
+            <label><input type="checkbox" name="participants" value="${p.id}"> ${p.name}</label>`).join('');
+    };
+
+    const renderSummary = () => {
+        const results = getCalculationResults();
+        document.getElementById('summary').innerHTML = `
+            <div class="summary-row"><span>Subtotal</span><span>${formatCurrency(results.subtotal)}</span></div>
+            <div class="summary-row"><span>Pajak (${results.taxPercent}%)</span><span>${formatCurrency(results.taxAmount)}</span></div>
+            <div class="summary-row"><span>Servis (${results.servicePercent}%)</span><span>${formatCurrency(results.serviceAmount)}</span></div>
+            <div class="summary-row total"><span>Grand Total</span><span>${formatCurrency(results.grandTotal)}</span></div>`;
+        document.getElementById('person-summary').innerHTML = results.personDetails.map(p => `
+            <div class="summary-row" style="font-weight: 600; padding-bottom: 0;"><span>${p.name}</span><span>${formatCurrency(p.total)}</span></div>
+            <div class="summary-row-sub"><span>(Subtotal: ${formatCurrency(p.subtotal)})</span></div>`).join('');
+    };
+
+    const addPerson = () => {
+        const nameInput = document.getElementById('person-name');
+        if (nameInput.value.trim()) {
+            people.push({ id: nextPersonId++, name: nameInput.value.trim(), items: [] });
+            nameInput.value = '';
+            render();
+        }
+    };
+    const removePerson = (personId) => {
+        people = people.filter(p => p.id !== personId);
+        sharedItems.forEach(item => { item.participants = item.participants.filter(pId => pId !== personId); });
+        sharedItems = sharedItems.filter(item => item.participants.length > 0);
+        render();
+    };
+    const addItem = (personId) => {
+        const nameInput = document.getElementById(`item-name-${personId}`);
+        const priceInput = document.getElementById(`item-price-${personId}`);
+        const price = parseFloat(priceInput.value.replace(/\./g, ''));
+        if (nameInput.value.trim() && !isNaN(price) && price > 0) {
+            const person = people.find(p => p.id === personId);
+            person.items.push({ name: nameInput.value.trim(), price });
+            nameInput.value = ''; priceInput.value = '';
+            render();
+        }
+    };
+    const removeItem = (personId, itemIndex) => {
+        people.find(p => p.id === personId).items.splice(itemIndex, 1);
+        render();
+    };
+    const addSharedItem = () => {
+        const nameInput = document.getElementById('shared-item-name');
+        const priceInput = document.getElementById('shared-item-price');
+        const price = parseFloat(priceInput.value.replace(/\./g, ''));
+        const participantNodes = document.querySelectorAll('[name="participants"]:checked');
+        const participants = Array.from(participantNodes).map(node => parseInt(node.value));
+        if (nameInput.value.trim() && !isNaN(price) && price > 0 && participants.length > 0) {
+            sharedItems.push({ id: nextSharedItemId++, name: nameInput.value.trim(), price, participants });
+            nameInput.value = ''; priceInput.value = '';
+            render();
+        } else {
+            alert('Pastikan nama, harga, dan minimal satu peserta patungan sudah dipilih!');
+        }
+    };
+    const removeSharedItem = (itemId) => {
+        sharedItems = sharedItems.filter(item => item.id !== itemId);
+        render();
+    };
+
+    const exportToPNG = () => {
+        const captureArea = document.getElementById('capture-area');
+        alert('Menyiapkan gambar... Mohon tunggu sebentar.');
+        html2canvas(captureArea, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'hasil-split-bill.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    };
+    const formatCurrency = (amount) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    const formatInput = (event) => {
+        const input = event.target;
+        let value = input.value.replace(/\./g, '');
+        input.value = !isNaN(value) && value !== '' ? new Intl.NumberFormat('id-ID').format(value) : '';
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        render();
+    });
+</script>
+
+</body>
+</html>
