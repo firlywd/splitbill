@@ -33,7 +33,25 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             position: relative;
         }
-        h1, h2, h3 { color: var(--primary-color); text-align: center; }
+        h1 { color: var(--primary-color); text-align: center; margin-bottom: 5px; }
+        h2, h3 { color: var(--primary-color); text-align: center; }
+
+        .subtitle {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 1em;
+            color: #555;
+        }
+        .subtitle a {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .subtitle a:hover {
+            text-decoration: underline;
+        }
+
         .input-group, .person-card, .summary-card, .shared-items-card {
             margin-bottom: 20px;
             padding: 15px;
@@ -76,22 +94,37 @@
         .participant-list label { display: flex; align-items: center; gap: 5px; font-size: 0.9em; padding: 5px 10px; background: #fff; border: 1px solid var(--border-color); border-radius: 20px; cursor: pointer; }
         hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
         
-        /* PERUBAHAN 3: Style untuk Tombol Reset Bill Baru */
+        /* PERUBAHAN: Style untuk Tombol Reset */
         #reset-btn {
             position: absolute;
             top: 20px;
             right: 20px;
-            font-size: 0.9rem; /* Ukuran font disesuaikan */
+            font-size: 0.9rem;
             font-weight: 600;
-            background-color: var(--danger-color);
-            border: none;
-            color: white;
+            background-color: transparent;
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
             cursor: pointer;
-            padding: 8px 12px; /* Padding disesuaikan */
+            padding: 8px 12px;
             border-radius: 8px;
-            opacity: 0.9;
+            opacity: 0.8;
         }
-        #reset-btn:hover { opacity: 1; background-color: #c0392b; }
+        #reset-btn:hover {
+            opacity: 1;
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+        
+        #toggle-shared-btn {
+            width: 100%;
+            background-color: transparent;
+            color: var(--success-color);
+            border: 2px dashed var(--success-color);
+            opacity: 0.8;
+        }
+        #toggle-shared-btn:hover {
+            opacity: 1;
+            background-color: rgba(46, 204, 113, 0.1);
+        }
         
         footer {
             text-align: center;
@@ -114,8 +147,12 @@
 <body>
 
     <div class="container">
-        <button id="reset-btn" onclick="clearData()" title="Hapus semua data dan mulai dari awal">Mulai Bill Baru</button>
+        <button id="reset-btn" onclick="resetBill()" title="Ulangi dari awal">Reset</button>
+
         <h1>Splitt Bill Aja 🤝</h1>
+        <p class="subtitle">
+            Kunjungi link pendeknya di <a href="https://s.id/splitbilll" target="_blank" rel="noopener noreferrer">s.id/splitbilll</a>
+        </p>
         
         <div class="input-group">
             <div class="input-row">
@@ -124,16 +161,21 @@
             </div>
         </div>
         <div class="input-group">
-            <p style="text-align:center; margin-top:-5px; font-size:0.9em; color:#555;"><b>Langkah 1:</b> Masukkan nama semua orang di sini.</p>
+            <p style="text-align:center; margin-top:-5px; font-size:0.9em; color:#555;"><b>Langkah 1:</b> Masukkan nama semua orang.</p>
             <div class="input-row">
                 <input type="text" id="person-name" placeholder="Contoh: Budi">
                 <button onclick="addPerson()" id="add-person-btn">Tambah</button>
             </div>
         </div>
 
+        <div id="people-container"></div>
+
+        <div id="add-shared-toggle-container" style="display: none; margin-bottom: 20px;">
+            <button id="toggle-shared-btn" onclick="showSharedSection()">+ Tambah Barang Patungan (Opsional)</button>
+        </div>
+
         <div id="shared-items-section" class="shared-items-card" style="display: none;">
             <h2>Barang Patungan</h2>
-            <p style="text-align:center; margin-top:-15px; font-size:0.9em; color:#555;"><b>Langkah 2:</b> Masukkan item yang dibayar bersama.</p>
             <div id="shared-item-list"></div><hr>
             <div class="input-row">
                 <input type="text" id="shared-item-name" placeholder="Nama Item Patungan">
@@ -142,8 +184,6 @@
             <div id="shared-item-participants" class="participant-list"></div>
             <button style="margin-top: 15px; background-color: var(--success-color);" onclick="addSharedItem()">Tambah Item Patungan</button>
         </div>
-
-        <div id="people-container"></div>
 
         <div id="summary-section" style="display: none;">
             <hr>
@@ -165,43 +205,14 @@
     </div>
 
 <script>
-    // --- SEMUA KODE JAVASCRIPT TETAP SAMA ---
     let people = [];
     let sharedItems = [];
     let nextPersonId = 0;
     let nextSharedItemId = 0;
 
-    const saveData = () => {
-        const data = {
-            people,
-            sharedItems,
-            tax: document.getElementById('tax').value,
-            service: document.getElementById('service').value,
-            nextPersonId,
-            nextSharedItemId
-        };
-        localStorage.setItem('splitBillData', JSON.stringify(data));
-    };
-
-    const loadData = () => {
-        const savedData = localStorage.getItem('splitBillData');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            people = data.people || [];
-            sharedItems = data.sharedItems || [];
-            document.getElementById('tax').value = data.tax || '11';
-            document.getElementById('service').value = data.service || '5';
-            nextPersonId = data.nextPersonId || 0;
-            nextSharedItemId = data.nextSharedItemId || 0;
-        } else {
-            document.getElementById('tax').value = '11';
-            document.getElementById('service').value = '5';
-        }
-    };
-    
-    const clearData = () => {
-        if (confirm('Anda yakin ingin menghapus semua data dan memulai bill baru?')) {
-            localStorage.removeItem('splitBillData');
+    // PERUBAHAN: Fungsi untuk mereset aplikasi
+    const resetBill = () => {
+        if (confirm('Anda yakin ingin menghapus semua data dan mengulang dari awal?')) {
             location.reload();
         }
     };
@@ -209,10 +220,8 @@
     const getCalculationResults = () => {
         const taxPercent = parseFloat(document.getElementById('tax').value) || 0;
         const servicePercent = parseFloat(document.getElementById('service').value) || 0;
-        
         const personalItemsSubtotal = people.reduce((sum, p) => sum + p.items.reduce((itemSum, item) => itemSum + item.price, 0), 0);
         const sharedItemsSubtotal = sharedItems.reduce((sum, item) => sum + item.price, 0);
-        
         const subtotal = personalItemsSubtotal + sharedItemsSubtotal;
         const taxAmount = subtotal * (taxPercent / 100);
         const serviceAmount = subtotal * (servicePercent / 100);
@@ -238,13 +247,12 @@
 
     const render = () => {
         const hasData = people.length > 0 || sharedItems.length > 0;
-        document.getElementById('shared-items-section').style.display = people.length > 0 ? 'block' : 'none';
+        document.getElementById('add-shared-toggle-container').style.display = people.length > 0 && document.getElementById('shared-items-section').style.display === 'none' ? 'block' : 'none';
         document.getElementById('summary-section').style.display = hasData ? 'block' : 'none';
 
         renderPeopleCards();
         renderSharedItems();
         renderSummary();
-        saveData(); 
     };
     
     const renderPeopleCards = () => {
@@ -262,7 +270,6 @@
                 <div class="person-header">
                     <h3>${person.name} <span class="delete-person-btn" onclick="removePerson(${person.id})" title="Hapus ${person.name}">🗑️</span></h3>
                 </div>
-                <p style="text-align:center; margin-top:-15px; font-size:0.9em; color:#555;"><b>Langkah 3:</b> Masukkan item pribadi orang ini.</p>
                 <ul class="item-list">${itemsHTML}</ul><hr>
                 <div class="input-row">
                     <input type="text" id="item-name-${person.id}" placeholder="Item pribadi">
@@ -299,6 +306,11 @@
         document.getElementById('person-summary').innerHTML = results.personDetails.map(p => `
             <div class="summary-row" style="font-weight: 600; padding-bottom: 0;"><span>${p.name}</span><span>${formatCurrency(p.total)}</span></div>
             <div class="summary-row-sub"><span>(Subtotal: ${formatCurrency(p.subtotal)})</span></div>`).join('');
+    };
+    
+    const showSharedSection = () => {
+        document.getElementById('shared-items-section').style.display = 'block';
+        document.getElementById('add-shared-toggle-container').style.display = 'none';
     };
 
     const addPerson = () => {
@@ -367,7 +379,8 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadData();
+        document.getElementById('tax').value = '11';
+        document.getElementById('service').value = '5';
         render();
     });
 </script>
